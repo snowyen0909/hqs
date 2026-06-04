@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界通史單字測驗</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .quiz-container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        position: relative;
+    }
+    h1 {
+        color: #333;
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    .question-info {
+        color: #666;
+        margin-bottom: 15px;
+        font-size: 16px;
+    }
+    .english-word {
+        font-size: 32px;
+        color: #0056b3;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    input[type="text"] {
+        width: 80%;
+        padding: 10px;
+        font-size: 18px;
+        border: 2px solid #ccc;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        outline: none;
+    }
+    input[type="text"]:focus {
+        border-color: #0056b3;
+    }
+    button {
+        background-color: #0056b3;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        margin: 5px;
+    }
+    button:hover {
+        background-color: #004494;
+    }
+    button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    .btn-skip {
+        background-color: #dc3545;
+    }
+    .btn-skip:hover {
+        background-color: #c82333;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+    }
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+    .feedback {
+        margin-top: 15px;
+        font-size: 16px;
+        font-weight: bold;
+        min-height: 24px;
+    }
+    .correct { color: green; }
+    .incorrect { color: red; }
+    .hidden { display: none !important; }
+    #result-screen h2 {
+        font-size: 28px;
+        color: #333;
+    }
+    .history-list {
+        text-align: left;
+        max-height: 250px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+</style>
+</head>
+<body>
+
+<div class="quiz-container" id="start-screen">
+    <h1>世界通史單字測驗</h1>
+    <p>每次隨機抽取 20 題，顯示英文請輸入中文。</p>
+    <p style="color: #666; font-size: 14px;">（註：若有多個答案如「塞魯士/居魯士二世」，填入其中一個即可）</p>
+    <button id="start-btn" onclick="startQuiz()" disabled>單字載入中...</button>
+    <button class="btn-secondary" onclick="viewHistory()">歷史紀錄</button>
+</div>
+
+<div class="quiz-container hidden" id="history-screen">
+    <h1>測驗歷史紀錄</h1>
+    <div id="history-content" class="history-list"></div>
+    <button onclick="closeHistory()">返回首頁</button>
+    <button class="btn-skip" onclick="clearHistory()">清除紀錄</button>
+</div>
+
+<div class="quiz-container hidden" id="quiz-screen">
+    <h1>世界通史單字測驗</h1>
+    <div class="question-info" id="question-counter">題數: 1 / 20</div>
+    <div class="english-word" id="english-word">English</div>
+    <input type="text" id="answer-input" placeholder="請輸入中文..." onkeypress="handleKeyPress(event)">
+    <br>
+    <button id="submit-btn" onclick="checkAnswer()">提交</button>
+    <button id="skip-btn" class="btn-skip" onclick="skipQuestion()">我不會</button>
+    <div class="feedback" id="feedback"></div>
+</div>
+
+<div class="quiz-container hidden" id="result-screen">
+    <h1>測驗結束！</h1>
+    <h2 id="final-score">你的分數: 0 / 20</h2>
+    <div id="mistakes-list" style="text-align: left; margin: 20px 0; max-height: 200px; overflow-y: auto;"></div>
+    <button onclick="resetQuiz()">回首頁</button>
+    <button onclick="startQuiz()">再測一次</button>
+</div>
+
+<script>
+    let allVocab = []; // 改為空陣列，準備接收來自網路的資料
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let mistakes = [];
+    let waitingForNext = false;
+
+    const jsonUrl = 'https://raw.githubusercontent.com/snowyen0909/loon-2/refs/heads/main/Qs.json';
+
+    // 網頁載入時自動抓取單字表
+    window.onload = async function() {
+        const startBtn = document.getElementById('start-btn');
+        try {
+            const response = await fetch(jsonUrl);
+            if (!response.ok) {
+                throw new Error('網路連線發生問題');
+            }
+            allVocab = await response.json();
+            
+            // 載入成功，啟用開始按鈕
+            startBtn.innerText = '開始測驗';
+            startBtn.disabled = false;
+        } catch (error) {
+            console.error('載入單字表失敗:', error);
+            startBtn.innerText = '載入失敗，請確認網址或重整網頁';
+            startBtn.style.backgroundColor = '#dc3545'; // 變紅色提醒錯誤
+        }
+    };
+
+    // 洗牌演算法
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex !== 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    // 開始測驗
+    function startQuiz() {
+        if (allVocab.length === 0) {
+            alert("單字庫尚未載入或為空，請稍後再試。");
+            return;
+        }
+        
+        // 隨機抽取，如果單字總數少於 20，就取單字總數
+        const questionCount = Math.min(20, allVocab.length);
+        currentQuestions = shuffleArray([...allVocab]).slice(0, questionCount);
+        currentIndex = 0;
+        score = 0;
+        mistakes = [];
+        waitingForNext = false;
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('history-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        
+        showQuestion();
+    }
+
+    // 顯示題目
+    function showQuestion() {
+        document.getElementById('question-counter').innerText = `題數: ${currentIndex + 1} / ${currentQuestions.length}`;
+        document.getElementById('english-word').innerText = currentQuestions[currentIndex].en;
+        document.getElementById('answer-input').value = '';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('answer-input').focus();
+        
+        // 恢復按鈕狀態
+        document.getElementById('submit-btn').innerText = '提交';
+        document.getElementById('skip-btn').classList.remove('hidden');
+        waitingForNext = false;
+    }
+
+    // 處理 Enter 鍵
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') {
+            if (waitingForNext) {
+                nextQuestion();
+            } else {
+                checkAnswer();
+            }
+        }
+    }
+
+    // 檢查答案
+    function checkAnswer() {
+        if (waitingForNext) {
+            nextQuestion();
+            return;
+        }
+
+        const input = document.getElementById('answer-input').value.trim();
+        if (input === '') return; // 如果空白則不動作，強迫使用者點「我不會」
+
+        const currentVocab = currentQuestions[currentIndex];
+        const isCorrect = currentVocab.zh.some(ans => ans.trim() === input);
+        const feedbackEl = document.getElementById('feedback');
+
+        if (isCorrect) {
+            score++;
+            feedbackEl.innerHTML = '<span class="correct">答對了！</span>';
+        } else {
+            const correctAnswersStr = currentVocab.zh.join(' 或 ');
+            feedbackEl.innerHTML = `<span class="incorrect">答錯了，正確答案是：${correctAnswersStr}</span>`;
+            mistakes.push({ en: currentVocab.en, yourAnswer: input, correct: correctAnswersStr });
+        }
+
+        setToNextState();
+    }
+
+    // 處理「我不會」按鈕
+    function skipQuestion() {
+        if (waitingForNext) return;
+
+        const currentVocab = currentQuestions[currentIndex];
+        const correctAnswersStr = currentVocab.zh.join(' 或 ');
+        const feedbackEl = document.getElementById('feedback');
+        
+        // 不給分，並顯示正確答案
+        feedbackEl.innerHTML = `<span class="incorrect">未作答，正確答案是：${correctAnswersStr}</span>`;
+        mistakes.push({ en: currentVocab.en, yourAnswer: "未作答", correct: correctAnswersStr });
+
+        setToNextState();
+    }
+
+    // 將按鈕狀態設定為準備進入下一題
+    function setToNextState() {
+        waitingForNext = true;
+        document.getElementById('submit-btn').innerText = '下一題';
+        document.getElementById('skip-btn').classList.add('hidden'); // 隱藏我不會按鈕
+        document.getElementById('submit-btn').focus();
+    }
+
+    // 進入下一題
+    function nextQuestion() {
+        currentIndex++;
+        if (currentIndex < currentQuestions.length) {
+            showQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    // 顯示結果並儲存紀錄
+    function showResults() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        
+        document.getElementById('final-score').innerText = `你的分數: ${score} / ${currentQuestions.length}`;
+        
+        // 儲存歷史紀錄
+        saveHistory(score, currentQuestions.length);
+
+        // 顯示錯誤單字
+        const mistakesList = document.getElementById('mistakes-list');
+        if (mistakes.length > 0) {
+            let html = '<h3>需要複習的單字：</h3><ul>';
+            mistakes.forEach(m => {
+                html += `<li><b>${m.en}</b> - 正確: <span style="color:green;">${m.correct}</span> (你的答案: <span style="color:red;">${m.yourAnswer}</span>)</li>`;
+            });
+            html += '</ul>';
+            mistakesList.innerHTML = html;
+        } else {
+            mistakesList.innerHTML = '<h3 style="color:green;">太棒了！全對滿分！</h3>';
+        }
+    }
+
+    // 回到首頁
+    function resetQuiz() {
+        document.getElementById('result-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+    }
+
+    // --- 歷史紀錄相關功能 ---
+    function saveHistory(currentScore, totalScore) {
+        let history = JSON.parse(localStorage.getItem('vocabQuizHistory')) || [];
+        const now = new Date();
+        const dateString = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        
+        history.push({ date: dateString, score: currentScore, total: totalScore });
+        localStorage.setItem('vocabQuizHistory', JSON.stringify(history));
+    }
+
+    function viewHistory() {
+        const history = JSON.parse(localStorage.getItem('vocabQuizHistory')) || [];
+        const content = document.getElementById('history-content');
+        
+        if (history.length === 0) {
+            content.innerHTML = '<p style="text-align: center; color: #666;">目前尚無測驗紀錄</p>';
+        } else {
+            let html = '<ul>';
+            [...history].reverse().forEach((record, index) => {
+                const total = record.total || 20; // 舊紀錄預設 20
+                html += `<li>${record.date} - 得分: <b>${record.score} / ${total}</b></li>`;
+            });
+            html += '</ul>';
+            content.innerHTML = html;
+        }
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('history-screen').classList.remove('hidden');
+    }
+
+    function closeHistory() {
+        document.getElementById('history-screen').classList.add('hidden');
+        document.getElementById('start-screen').classList.remove('hidden');
+    }
+
+    function clearHistory() {
+        if(confirm('確定要清除所有測驗紀錄嗎？')) {
+            localStorage.removeItem('vocabQuizHistory');
+            viewHistory(); // 重新整理歷史紀錄畫面
+        }
+    }
+</script>
+
+</body>
+</html>
