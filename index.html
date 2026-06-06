@@ -5,38 +5,94 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>世界通史單字測驗</title>
 <style>
+    /* 基本變數與過渡效果 */
+    :root {
+        --bg-color: #f0f2f5;
+        --container-bg: white;
+        --text-color: #333;
+        --text-muted: #666;
+        --primary-color: #0056b3;
+        --primary-hover: #004494;
+        --input-bg: #fff;
+        --input-border: #ccc;
+        --history-bg: #f8f9fa;
+        --history-border: #eee;
+        --history-item-border: #dee2e6;
+    }
+
+    body.dark-mode {
+        --bg-color: #18191a;
+        --container-bg: #242526;
+        --text-color: #e4e6eb;
+        --text-muted: #b0b3b8;
+        --primary-color: #4da3ff;
+        --primary-hover: #338df2;
+        --input-bg: #3a3b3c;
+        --input-border: #555;
+        --history-bg: #3a3b3c;
+        --history-border: #555;
+        --history-item-border: #444;
+    }
+
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f0f2f5;
+        background-color: var(--bg-color);
+        color: var(--text-color);
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
         margin: 0;
+        transition: background-color 0.3s, color 0.3s;
     }
+
+    /* 右上角深色模式切換鈕 */
+    #theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--container-bg);
+        color: var(--text-color);
+        border: 2px solid var(--input-border);
+        border-radius: 50%;
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+    #theme-toggle:hover {
+        transform: scale(1.1);
+    }
+
     .quiz-container {
-        background-color: white;
+        background-color: var(--container-bg);
         padding: 30px;
         border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         width: 100%;
         max-width: 500px;
         text-align: center;
-        position: relative;
+        transition: background-color 0.3s, box-shadow 0.3s;
     }
     h1 {
-        color: #333;
+        color: var(--text-color);
         font-size: 24px;
         margin-bottom: 20px;
     }
     .question-info {
-        color: #666;
+        color: var(--text-muted);
         margin-bottom: 15px;
         font-size: 16px;
     }
     .english-word {
         font-size: 32px;
-        color: #0056b3;
+        color: var(--primary-color);
         font-weight: bold;
         margin-bottom: 20px;
     }
@@ -44,117 +100,107 @@
         width: 80%;
         padding: 10px;
         font-size: 18px;
-        border: 2px solid #ccc;
+        background-color: var(--input-bg);
+        color: var(--text-color);
+        border: 2px solid var(--input-border);
         border-radius: 5px;
         margin-bottom: 20px;
         outline: none;
         box-sizing: border-box;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
     }
     input[type="text"]:focus {
-        border-color: #0056b3;
+        border-color: var(--primary-color);
     }
     button {
-        background-color: #0056b3;
+        background-color: var(--primary-color);
         color: white;
         border: none;
         padding: 10px 20px;
         font-size: 16px;
         border-radius: 5px;
         cursor: pointer;
-        transition: background-color 0.3s;
+        transition: background-color 0.3s, transform 0.1s;
         margin: 5px;
     }
-    button:hover {
-        background-color: #004494;
+    button:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+    button:active:not(:disabled) {
+        transform: translateY(0);
     }
     button:disabled {
-        background-color: #ccc !important;
-        color: #666 !important;
+        background-color: var(--input-border) !important;
+        color: var(--text-muted) !important;
         cursor: not-allowed;
     }
-    .btn-skip {
-        background-color: #dc3545;
-    }
-    .btn-skip:hover {
-        background-color: #c82333;
-    }
-    .btn-secondary {
-        background-color: #6c757d;
-    }
-    .btn-secondary:hover {
-        background-color: #5a6268;
-    }
-    .btn-warning {
-        background-color: #ffc107;
-        color: #212529;
-        font-weight: bold;
-    }
-    .btn-warning:hover {
-        background-color: #e0a800;
-    }
-    .btn-small {
-        padding: 5px 10px;
-        font-size: 14px;
-        margin: 0;
-    }
+    .btn-skip { background-color: #dc3545; }
+    .btn-skip:hover:not(:disabled) { background-color: #c82333; }
+    .btn-secondary { background-color: #6c757d; }
+    .btn-secondary:hover:not(:disabled) { background-color: #5a6268; }
+    .btn-warning { background-color: #ffc107; color: #212529; font-weight: bold; }
+    .btn-warning:hover:not(:disabled) { background-color: #e0a800; }
+    .btn-info { background-color: #17a2b8; }
+    .btn-info:hover:not(:disabled) { background-color: #138496; }
+    .btn-small { padding: 5px 10px; font-size: 14px; margin: 0; }
+    
     .feedback {
         margin-top: 15px;
         font-size: 16px;
         font-weight: bold;
         min-height: 24px;
     }
-    .correct { color: green; }
-    .incorrect { color: red; }
+    .correct { color: #28a745; }
+    .incorrect { color: #dc3545; }
     .hidden { display: none !important; }
-    #result-screen h2 {
-        font-size: 28px;
-        color: #333;
-    }
+    #result-screen h2 { font-size: 28px; color: var(--text-color); }
+    
     .history-list {
         text-align: left;
         max-height: 350px;
         overflow-y: auto;
         margin-bottom: 20px;
         padding: 10px;
-        background: #f8f9fa;
+        background: var(--history-bg);
         border-radius: 5px;
+        border: 1px solid var(--history-border);
     }
     .history-item {
         margin-bottom: 10px;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--history-item-border);
         padding-bottom: 10px;
     }
-    .history-item:last-child {
-        border-bottom: none;
-    }
-    .history-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
+    .history-item:last-child { border-bottom: none; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; }
     .history-details {
         margin-top: 10px;
-        background: #fff;
+        background: var(--container-bg);
         padding: 10px;
         border-radius: 5px;
-        border: 1px solid #eee;
+        border: 1px solid var(--history-border);
         font-size: 14px;
     }
-    .history-details ul {
-        padding-left: 20px;
-        margin-bottom: 0;
-    }
-    .history-details li {
-        margin-bottom: 8px;
+    .history-details ul { padding-left: 20px; margin-bottom: 0; }
+    .history-details li { margin-bottom: 8px; }
+
+    /* 暫停畫面圖示動畫 */
+    .pause-icon { font-size: 50px; margin-bottom: 10px; animation: pulse 2s infinite; }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
     }
 </style>
 </head>
 <body>
 
+<button id="theme-toggle" onclick="toggleTheme()" title="切換深色/淺色模式">🌙</button>
+
 <div class="quiz-container" id="start-screen">
     <h1>世界通史單字測驗</h1>
-    <p>每次隨機抽取 20 題，顯示英文請輸入中文。</p>
-    <p style="color: #666; font-size: 14px;">（註：若有多個答案，填入其中一個即可）</p>
+    <p style="color: var(--text-muted);">每次隨機抽取 20 題，顯示英文請輸入中文。</p>
+    <p style="color: var(--text-muted); font-size: 14px;">（註：若有多個答案，填入其中一個即可）</p>
     <div>
         <button id="start-btn" onclick="startQuiz()" disabled>單字載入中...</button>
         <button class="btn-secondary" onclick="viewHistory()">歷史紀錄</button>
@@ -179,13 +225,22 @@
     <br>
     <button id="submit-btn" onclick="checkAnswer()">提交</button>
     <button id="skip-btn" class="btn-skip" onclick="skipQuestion()">我不會</button>
+    <button id="pause-btn" class="btn-info" onclick="pauseQuiz()">⏸️ 暫離</button>
     <div class="feedback" id="feedback"></div>
+</div>
+
+<div class="quiz-container hidden" id="pause-screen">
+    <div class="pause-icon">☕</div>
+    <h1>測驗已暫停</h1>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">題目已暫時隱藏，準備好就可以繼續囉！</p>
+    <button onclick="resumeQuiz()">▶️ 繼續測驗</button>
+    <button class="btn-skip" onclick="quitQuiz()">⏹️ 結束並回首頁</button>
 </div>
 
 <div class="quiz-container hidden" id="result-screen">
     <h1>測驗結束！</h1>
     <h2 id="final-score">你的分數: 0 / 20</h2>
-    <div id="mistakes-list" style="text-align: left; margin: 20px 0; max-height: 200px; overflow-y: auto;"></div>
+    <div id="mistakes-list" style="text-align: left; margin: 20px 0; max-height: 200px; overflow-y: auto; padding: 10px; background: var(--history-bg); border-radius: 5px;"></div>
     <button onclick="resetQuiz()">回首頁</button>
 </div>
 
@@ -195,14 +250,16 @@
     let currentIndex = 0;
     let score = 0;
     let mistakes = [];
-    let sessionCorrects = []; // 紀錄這回合答對的單字
+    let sessionCorrects = []; 
     let waitingForNext = false;
     let isReviewMode = false;
 
     const jsonUrl = 'https://raw.githubusercontent.com/snowyen0909/loon-2/refs/heads/main/Qs.json';
 
-    // 網頁載入時自動抓取單字表
+    // 網頁載入初始化
     window.onload = async function() {
+        initTheme(); // 初始化深色模式設定
+        
         const startBtn = document.getElementById('start-btn');
         try {
             const response = await fetch(jsonUrl);
@@ -220,11 +277,35 @@
         }
     };
 
-    // 取得當前有效的錯題清單
+    // --- 深色模式相關功能 ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem('vocabQuizTheme');
+        const themeBtn = document.getElementById('theme-toggle');
+        // 如果曾設定為 dark，或系統偏好深色且未設定過
+        if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.body.classList.add('dark-mode');
+            themeBtn.innerText = '☀️';
+        } else {
+            themeBtn.innerText = '🌙';
+        }
+    }
+
+    function toggleTheme() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        const themeBtn = document.getElementById('theme-toggle');
+        
+        if (isDark) {
+            localStorage.setItem('vocabQuizTheme', 'dark');
+            themeBtn.innerText = '☀️';
+        } else {
+            localStorage.setItem('vocabQuizTheme', 'light');
+            themeBtn.innerText = '🌙';
+        }
+    }
+
+    // --- 錯題庫相關功能 ---
     function getMistakeVocab() {
         let activeMistakes = JSON.parse(localStorage.getItem('vocabActiveMistakes'));
-        
-        // 為了相容舊版紀錄，如果沒有 activeMistakes，就從舊的歷史紀錄撈出錯題建立起來
         if (!activeMistakes) {
             activeMistakes = [];
             let history = JSON.parse(localStorage.getItem('vocabQuizHistory')) || [];
@@ -237,33 +318,19 @@
             });
             localStorage.setItem('vocabActiveMistakes', JSON.stringify(activeMistakes));
         }
-
         return allVocab.filter(vocab => activeMistakes.includes(vocab.en));
     }
 
-    // 更新錯題庫：新增錯題、移除答對的題目
     function updateMasterMistakes(correctWordsEn, wrongWordsEn) {
         let activeMistakes = JSON.parse(localStorage.getItem('vocabActiveMistakes')) || [];
-        
-        // 1. 新增這回合答錯的單字
-        wrongWordsEn.forEach(en => {
-            if (!activeMistakes.includes(en)) {
-                activeMistakes.push(en);
-            }
-        });
-
-        // 2. 移除這回合答對的單字 (如果它原本在錯題本裡面的話)
+        wrongWordsEn.forEach(en => { if (!activeMistakes.includes(en)) activeMistakes.push(en); });
         correctWordsEn.forEach(en => {
             const index = activeMistakes.indexOf(en);
-            if (index > -1) {
-                activeMistakes.splice(index, 1);
-            }
+            if (index > -1) activeMistakes.splice(index, 1);
         });
-
         localStorage.setItem('vocabActiveMistakes', JSON.stringify(activeMistakes));
     }
 
-    // 更新錯題按鈕文字與狀態
     function updateReviewButton() {
         const reviewBtn = document.getElementById('review-btn');
         if (!reviewBtn || allVocab.length === 0) return;
@@ -278,6 +345,7 @@
         }
     }
 
+    // --- 測驗流程相關功能 ---
     function shuffleArray(array) {
         let currentIndex = array.length, randomIndex;
         while (currentIndex !== 0) {
@@ -299,7 +367,6 @@
         const mistakeVocab = getMistakeVocab();
         if (mistakeVocab.length === 0) return;
         isReviewMode = true;
-        
         const questionCount = Math.min(20, mistakeVocab.length);
         startTestFlow(shuffleArray([...mistakeVocab]).slice(0, questionCount), "💪 錯題特訓模式");
     }
@@ -309,13 +376,14 @@
         currentIndex = 0;
         score = 0;
         mistakes = [];
-        sessionCorrects = []; // 清空這回合答對紀錄
+        sessionCorrects = []; 
         waitingForNext = false;
 
         document.getElementById('quiz-title').innerText = title;
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.add('hidden');
         document.getElementById('history-screen').classList.add('hidden');
+        document.getElementById('pause-screen').classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
         
         showQuestion();
@@ -330,6 +398,7 @@
         
         document.getElementById('submit-btn').innerText = '提交';
         document.getElementById('skip-btn').classList.remove('hidden');
+        document.getElementById('pause-btn').classList.remove('hidden'); // 顯示暫停按鈕
         waitingForNext = false;
     }
 
@@ -341,10 +410,7 @@
     }
 
     function checkAnswer() {
-        if (waitingForNext) {
-            nextQuestion();
-            return;
-        }
+        if (waitingForNext) { nextQuestion(); return; }
 
         const input = document.getElementById('answer-input').value.trim();
         if (input === '') return; 
@@ -355,7 +421,7 @@
 
         if (isCorrect) {
             score++;
-            sessionCorrects.push(currentVocab.en); // 加入答對名單
+            sessionCorrects.push(currentVocab.en); 
             feedbackEl.innerHTML = '<span class="correct">答對了！</span>';
         } else {
             const correctAnswersStr = currentVocab.zh.join(' 或 ');
@@ -368,7 +434,6 @@
 
     function skipQuestion() {
         if (waitingForNext) return;
-
         const currentVocab = currentQuestions[currentIndex];
         const correctAnswersStr = currentVocab.zh.join(' 或 ');
         const feedbackEl = document.getElementById('feedback');
@@ -383,6 +448,7 @@
         waitingForNext = true;
         document.getElementById('submit-btn').innerText = '下一題';
         document.getElementById('skip-btn').classList.add('hidden'); 
+        document.getElementById('pause-btn').classList.add('hidden'); // 答題後隱藏暫停按鈕
         document.getElementById('submit-btn').focus();
     }
 
@@ -395,32 +461,49 @@
         }
     }
 
+    // --- 暫離功能 ---
+    function pauseQuiz() {
+        if (waitingForNext) return; // 如果已經送出答案，不允許暫停
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('pause-screen').classList.remove('hidden');
+    }
+
+    function resumeQuiz() {
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        document.getElementById('answer-input').focus();
+    }
+
+    function quitQuiz() {
+        if(confirm('確定要結束目前的測驗嗎？目前的進度將不會被記錄。')) {
+            document.getElementById('pause-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+    }
+
+    // --- 結果與歷史紀錄 ---
     function showResults() {
         document.getElementById('quiz-screen').classList.add('hidden');
         document.getElementById('result-screen').classList.remove('hidden');
         
         document.getElementById('final-score').innerText = `你的分數: ${score} / ${currentQuestions.length}`;
         
-        // 儲存一般歷史紀錄
         let modeTag = isReviewMode ? " (錯題特訓)" : "";
         saveHistory(score, currentQuestions.length, mistakes, modeTag);
-
-        // 更新動態錯題庫 (這回合答對的移除、答錯的新增)
         updateMasterMistakes(sessionCorrects, mistakes.map(m => m.en));
 
         const mistakesList = document.getElementById('mistakes-list');
         if (mistakes.length > 0) {
-            let html = '<h3>需要複習的單字：</h3><ul>';
+            let html = '<h3 style="color: var(--text-color);">需要複習的單字：</h3><ul>';
             mistakes.forEach(m => {
-                html += `<li><b>${m.en}</b> - 正確: <span style="color:green;">${m.correct}</span> (你的答案: <span style="color:red;">${m.yourAnswer}</span>)</li>`;
+                html += `<li><b style="color: var(--primary-color);">${m.en}</b> - 正確: <span class="correct">${m.correct}</span> (你的答案: <span class="incorrect">${m.yourAnswer}</span>)</li>`;
             });
             html += '</ul>';
             mistakesList.innerHTML = html;
         } else {
-            mistakesList.innerHTML = '<h3 style="color:green;">太棒了！這次全對滿分！ 🎉</h3>';
+            mistakesList.innerHTML = '<h3 class="correct">太棒了！這次全對滿分！ 🎉</h3>';
         }
 
-        // 更新首頁錯題題數顯示
         updateReviewButton();
     }
 
@@ -449,7 +532,7 @@
         const content = document.getElementById('history-content');
         
         if (history.length === 0) {
-            content.innerHTML = '<p style="text-align: center; color: #666;">目前尚無測驗紀錄</p>';
+            content.innerHTML = '<p style="text-align: center; color: var(--text-muted);">目前尚無測驗紀錄</p>';
         } else {
             let html = '<div style="list-style: none; padding: 0; margin: 0;">';
             [...history].reverse().forEach((record, index) => {
@@ -460,23 +543,23 @@
                 html += `
                 <div class="history-item">
                     <div class="history-header">
-                        <span style="font-size: 14px;">${record.date} ${tagStr}<br>得分: <b>${record.score} / ${total}</b></span>
+                        <span style="font-size: 14px; color: var(--text-color);">${record.date} <span style="color: var(--text-muted);">${tagStr}</span><br>得分: <b style="color: var(--primary-color);">${record.score} / ${total}</b></span>
                         <button class="btn-secondary btn-small" onclick="toggleDetails(${index})">查看檢討</button>
                     </div>
                     <div id="details-${index}" class="history-details hidden">
                 `;
 
                 if (recordMistakes.length > 0) {
-                    html += '<h4 style="margin: 0 0 10px 0; color: #dc3545;">錯題與未作答：</h4><ul>';
+                    html += '<h4 class="incorrect" style="margin: 0 0 10px 0;">錯題與未作答：</h4><ul>';
                     recordMistakes.forEach(m => {
                         html += `<li>
-                            <b>${m.en}</b><br>
-                            <span style="color:#666; font-size: 13px;">正確: <span style="color:green;">${m.correct}</span> | 你的答案: <span style="color:red;">${m.yourAnswer}</span></span>
+                            <b style="color: var(--primary-color);">${m.en}</b><br>
+                            <span style="color:var(--text-muted); font-size: 13px;">正確: <span class="correct">${m.correct}</span> | 你的答案: <span class="incorrect">${m.yourAnswer}</span></span>
                         </li>`;
                     });
                     html += '</ul>';
                 } else {
-                    html += '<p style="color: green; margin: 0; font-weight: bold;">太棒了！這次測驗全對滿分！ 🎉</p>';
+                    html += '<p class="correct" style="margin: 0; font-weight: bold;">太棒了！這次測驗全對滿分！ 🎉</p>';
                 }
                 html += `</div></div>`;
             });
@@ -490,11 +573,7 @@
 
     function toggleDetails(index) {
         const detailsDiv = document.getElementById(`details-${index}`);
-        if (detailsDiv.classList.contains('hidden')) {
-            detailsDiv.classList.remove('hidden');
-        } else {
-            detailsDiv.classList.add('hidden');
-        }
+        detailsDiv.classList.toggle('hidden');
     }
 
     function closeHistory() {
@@ -505,7 +584,7 @@
     function clearHistory() {
         if(confirm('確定要清除所有測驗紀錄嗎？錯題本也會跟著清空喔！')) {
             localStorage.removeItem('vocabQuizHistory');
-            localStorage.removeItem('vocabActiveMistakes'); // 一併清除錯題本
+            localStorage.removeItem('vocabActiveMistakes'); 
             updateReviewButton(); 
             viewHistory(); 
         }
